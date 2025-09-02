@@ -1,0 +1,16 @@
+# Hydra configuration
+hydra:
+  run:
+    dir: ${oc.env:HYDRA_RUN_DIR:./outputs}
+  sweep:
+    dir: ${hydra.run.dir}/multirun
+  job:
+    name: "sift"
+  output_subdir: null
+  help:
+    app_name: "corr_match"
+    header: "Experimental configuration to test & run SIFT on Lidar image sequences"
+    footer: "Parse the configurations as required for your experiment"
+  verbose: 1
+
+

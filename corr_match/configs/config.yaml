@@ -1,0 +1,21 @@
+# Default configuration for corr_match experiments
+defaults:
+  - config
+
+log:
+  log_level: DEBUG
+  backtrace: false
+  rotation: "1 MB"
+  retention: "10 days"
+  format: "<green>{time}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+  colorize: true
+  sink_file: null  # Set to "main.log" to enable file logging
+
+base:
+  exp_name: "sift_correspondence"
+  exp_dir: "./outputs"
+
+exp:
+  seed: 42
+  is_cuda: false
+  algorithm: "sift"
