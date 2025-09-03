@@ -13,7 +13,7 @@ import random
 import numpy as np
 
 try:
-    import torch
+    import torch # type: ignore
 except ImportError:
     torch = None
 
@@ -32,8 +32,13 @@ class ExperimentConfigs:
     dataset_name: Annotated[str, Literal["fans"]] = "fans"
 
     # SIFT params
-    flann_index_kdtree: int = 1
+    flann_index_kdtree: int = 0 # Algorithm used for FLANN
     trees: int = 5              # KD-tree for correspondence matching
+    flann_checks: int = 50      # Checks for FLANN search
+
+    # Lowe's ratio for good matches
+    lowe_ratio: float = 0.9
+
 
 def run_experiment(cfgs: DictConfig) -> float | None:
     """

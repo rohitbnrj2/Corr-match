@@ -10,9 +10,11 @@ This project focuses on developing algorithms and tools for establishing corresp
 
 ### For Development
 
+Optional, but if you want a mamba/conda environment please just create a conda environment with python=3.12
+
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/rohitbnrj2/Corr-match.git
 cd corr_match
 ```
 
