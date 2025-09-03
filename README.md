@@ -8,6 +8,8 @@ This project focuses on developing algorithms and tools for establishing corresp
 
 ## Installation
 
+Place the images within the corr_match/dataset/fans. You have to create dataset & fans folder. If you want to test other data points name them appropriately.
+
 ### For Development
 
 Optional, but if you want a mamba/conda environment please just create a conda environment with python=3.12
@@ -28,7 +30,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 poetry install
 ```
 
-4. Install development dependencies:
+4. Install development dependencies: [Not used currently]
 ```bash
 poetry install --with dev,docs
 ```
