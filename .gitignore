@@ -1,4 +1,12 @@
 __pycache__
 *json
+*png
+*jpg
+*jpeg
+*gif
+*webp
+*mp4
+*avi
+*mov
 outputs
 corr_match/dataset
