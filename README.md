@@ -1,10 +1,10 @@
-# Corr Match
+# SPAD Investigations 
 
-A Python package for finding correspondences between Single-Photon Lidar frames.
+A Python package for finding SPAD research gaps, essentially optimized for investigations.
 
 ## Description
 
-This project focuses on developing algorithms and tools for establishing correspondences between frames captured by Single-Photon Lidar systems. This is useful for applications in computer vision, 3D reconstruction, and autonomous systems.
+This package focuses on simulating SPAD images, testing Correspondence with SIFT, Inpainting SPAD binary frames with diffusion.
 
 ## Installation
 
@@ -16,7 +16,7 @@ Optional, but if you want a mamba/conda environment please just create a conda e
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/rohitbnrj2/Corr-match.git
+git clone https://github.com/rohitbnrj2/spad_investigations.git
 cd corr_match
 ```
 

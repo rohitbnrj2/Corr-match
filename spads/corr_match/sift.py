@@ -4,7 +4,7 @@ to find correspondences between images. Using OpenCV.
 """
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Sequence
+from typing import Annotated, Literal, List, Tuple, Sequence
 
 import os
 import os.path as osp
@@ -13,12 +13,30 @@ import cv2
 
 import numpy as np
 from loguru import logger
+from dataclasses import dataclass
 from omegaconf import DictConfig
 from hydra.core.hydra_config import HydraConfig
 from pydantic import BaseModel
 
 # Current Directory
 curr_dir = osp.abspath(osp.dirname(__file__))
+
+
+@dataclass
+class SiftConfigs:
+    """
+    Configuration for SIFT feature matching.
+    """
+
+    dataset_name: Annotated[str, Literal["fans"]] = "fans"
+
+    # SIFT params
+    flann_index_kdtree: int = 0 # Algorithm used for FLANN
+    trees: int = 5              # KD-tree for correspondence matching
+    flann_checks: int = 50      # Checks for FLANN search
+
+    # Lowe's ratio for good matches
+    lowe_ratio: float = 0.9
 
 
 class Keypoints(BaseModel):
@@ -29,6 +47,7 @@ class Keypoints(BaseModel):
     r: Sequence[cv2.KeyPoint]  # Keypoints for right image
 
     model_config = {"arbitrary_types_allowed": True}
+
 
 class Descriptors(BaseModel):
     """
@@ -60,17 +79,17 @@ class Sift:
     def __init__(self, cfgs: DictConfig) -> None:
 
         self._cfg = cfgs
-        self.d_name = self._cfg.exp.dataset_name
+        self.d_name = self._cfg.sift.dataset_name
         self.indices = self.get_indices()
 
         # Set constants
         self.SIFT = cv2.SIFT_create()  # type: ignore
 
-        FLANN_INDEX_KDTREE = self._cfg.exp.flann_index_kdtree
-        TREES = self._cfg.exp.trees
-        CHECKS = self._cfg.exp.flann_checks
+        FLANN_INDEX_KDTREE = self._cfg.sift.flann_index_kdtree
+        TREES = self._cfg.sift.trees
+        CHECKS = self._cfg.sift.flann_checks
 
-        self.lowe_ratio = self._cfg.exp.lowe_ratio
+        self.lowe_ratio = self._cfg.sift.lowe_ratio
         self.flann = cv2.FlannBasedMatcher(
             indexParams=dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES),
             searchParams=dict(checks=CHECKS)
@@ -88,14 +107,14 @@ class Sift:
             # Load current file & random file
             logger.debug(f'Left Image Index: {f_name}')
             img1 = cv2.imread(
-                osp.join(curr_dir, 'dataset', self.d_name, f_name)
+                osp.join(curr_dir, '../dataset', self.d_name, f_name)
             )
             gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)  # type: ignore
 
             idx = random.randint(0, len(self.indices)-1)
             logger.debug(f'Right Image Index: {self.indices[idx]}')
             img2 = cv2.imread(
-                osp.join(curr_dir, 'dataset', self.d_name, self.indices[idx])
+                osp.join(curr_dir, '../dataset', self.d_name, self.indices[idx])
             )
             gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)  # type: ignore
 
@@ -133,7 +152,7 @@ class Sift:
             raise ValueError(f"Unknown dataset provided {self.d_name}")
 
         # Create list of indices for the dataset
-        d_path = osp.join(curr_dir, "dataset", self.d_name)
+        d_path = osp.join(curr_dir, "../dataset", self.d_name)
 
         # Check number of items in dataset
         num_indices = len([name.strip() for name in os.listdir(d_path)])
@@ -284,7 +303,7 @@ def log_images(**kwargs) -> None:
 
             # Draw the keypoints on the image
             img_with_kp = cv2.drawKeypoints(
-                img, kp, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+                img, kp, img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
             )   # type: ignore
 
             filepath = osp.join(images_dir, f"{COUNTER:03d}_{key}.png")

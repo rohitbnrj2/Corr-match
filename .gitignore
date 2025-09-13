@@ -9,4 +9,5 @@ __pycache__
 *avi
 *mov
 outputs
+data
 corr_match/dataset

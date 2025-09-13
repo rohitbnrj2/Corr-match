@@ -17,7 +17,18 @@ try:
 except ImportError:
     torch = None
 
-from .sift import sift_runner
+try:
+    from .corr_match.sift import sift_runner
+except ImportError:
+    sift_runner = None
+    logger.error("Sift module not found")
+
+try:
+    from .data_gen.sim import sim_runner
+
+except ImportError:
+    sim_runner = None
+    logger.error("Simulator module not found")
 
 
 @dataclass
@@ -28,16 +39,7 @@ class ExperimentConfigs:
 
     seed : int = 42             # Seed for reproducibility
     is_cuda: bool = False       # Whether experiment requires CUDA
-    algorithm: Annotated[str, Literal["sift", "ransac"]] = "sift"
-    dataset_name: Annotated[str, Literal["fans"]] = "fans"
-
-    # SIFT params
-    flann_index_kdtree: int = 0 # Algorithm used for FLANN
-    trees: int = 5              # KD-tree for correspondence matching
-    flann_checks: int = 50      # Checks for FLANN search
-
-    # Lowe's ratio for good matches
-    lowe_ratio: float = 0.9
+    algorithm: Annotated[str, Literal["sift", "sim", "inpaint"]] = "sim"
 
 
 def run_experiment(cfgs: DictConfig) -> float | None:
@@ -62,7 +64,7 @@ def run_experiment(cfgs: DictConfig) -> float | None:
             raise RuntimeError(
                 "PyTorch is required for CUDA experiments but not installed"
             )
-            
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if device == "cpu":
@@ -71,13 +73,20 @@ def run_experiment(cfgs: DictConfig) -> float | None:
             )
 
     # Check the algorithm and launch the experiment
-    if cfgs.exp.algorithm == "sift":
-        sift_runner(cfgs)
+    algorithm_runners = {
+        "sift": sift_runner,
+        "sim": sim_runner,
+        "inpaint": None  # Add when inpaint_runner is implemented
+    }
     
-    else:
+    run_obj = algorithm_runners.get(cfgs.exp.algorithm)
+
+    if run_obj is None:
         raise ValueError(
-            f"Unknown algorithm for experiment {cfgs.exp.algorithm}"
+            f"{cfgs.exp.algorithm.capitalize()} module not found"
         )
+
+    run_obj(cfgs)
 
 
 def set_reproducibility(seed: int) -> None:
@@ -91,4 +100,4 @@ def set_reproducibility(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     if torch is not None:
-        torch.random.seed(seed)
+        torch.manual_seed(seed)

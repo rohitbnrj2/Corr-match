@@ -7,6 +7,8 @@ from typing import Annotated, Literal
 from dataclasses import dataclass, field
 
 from .experiment import ExperimentConfigs
+from spads.corr_match.sift import SiftConfigs
+from spads.data_gen.sim import SimConfigs
 
 @dataclass
 class LoggerConfig:
@@ -29,7 +31,7 @@ class BaseConfig:
     Basic experimental configuration
     """
 
-    exp_name: str = "sift_correspondence"   # The experiment name
+    exp_name: str = "simulator_spads"   # The experiment name
     exp_dir: str = "./outputs"   # The directory under which the experiment results are stored
 
 
@@ -42,3 +44,7 @@ class Config:
     log: LoggerConfig = field(default_factory=lambda: LoggerConfig())
     base: BaseConfig = field(default_factory=lambda: BaseConfig())
     exp: ExperimentConfigs = field(default_factory=lambda: ExperimentConfigs())
+    # Applicable when performing correspondence matching with sift
+    sift: SiftConfigs = field(default_factory=lambda: SiftConfigs())
+    # SPAD simulator configurations for RGB -> Binary SPAD images
+    sim: SimConfigs = field(default_factory=lambda: SimConfigs())
