@@ -70,8 +70,8 @@ def run_experiment(cfgs: DictConfig) -> None:
 
     # Check the algorithm and launch the experiment
     algorithm_runners = {
-        "sift": sift_runner,  # type: ignore
-        "sim": sim_runner,  # type: ignore
+        "sift": sift_runner,
+        "sim": sim_runner,
         "inpaint": None,  # Add when inpaint_runner is implemented
     }
 
