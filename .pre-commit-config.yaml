@@ -9,11 +9,14 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
-  - repo: https://github.com/psf/black
-    rev: 23.7.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.0
     hooks:
-      - id: black
-        language_version: python3.12
+      - id: ruff-check
+        args:
+          - --fix
+          - --show-fixes
+      - id: ruff-format
 
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
@@ -21,14 +24,19 @@ repos:
       - id: isort
         args: ["--profile", "black"]
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
     hooks:
-      - id: flake8
-        additional_dependencies: [flake8-docstrings]
+      - id: interrogate
+        args: [--quiet, --fail-under=85]
+        pass_filenames: false  # needed if excluding files with pyproject.toml
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.5.1
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
+        args:
+        - --ignore-missing-imports
+        - --install-types
+        - --non-interactive
+        - --explicit-package-bases
