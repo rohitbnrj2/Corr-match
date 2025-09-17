@@ -12,7 +12,7 @@ from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import (
 
 pipe = StableDiffusion3Pipeline.from_pretrained(
     "stabilityai/stable-diffusion-3-medium-diffusers",
-    token="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",
+    token="",
     torch_dtype=torch.float16,
 )
 pipe = pipe.to("cuda")
