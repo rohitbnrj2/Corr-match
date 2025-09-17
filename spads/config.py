@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from dataclasses import dataclass, field
 
-from .experiment import ExperimentConfigs
+from spads.experiment import ExperimentConfigs
 from spads.corr_match.sift import SiftConfigs
 from spads.data_gen.sim import SimConfigs
 

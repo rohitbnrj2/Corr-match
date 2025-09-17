@@ -42,6 +42,11 @@ pydantic = "^2.11.7"
 scipy = "^1.16.2"
 einsum = "^0.3.0"
 tqdm = "^4.67.1"
+diffusers = "^0.35.1"
+transformers = "^4.56.1"
+accelerate = "^1.10.1"
+protobuf = "^6.32.1"
+sentencepiece = "^0.2.1"
 
 
 [tool.poetry.dev-dependencies]

@@ -39,7 +39,7 @@ class ExperimentConfigs:
 
     seed : int = 42             # Seed for reproducibility
     is_cuda: bool = False       # Whether experiment requires CUDA
-    algorithm: Annotated[str, Literal["sift", "sim", "inpaint"]] = "sim"
+    algorithm: Annotated[str, Literal["sift", "sim", "inpaint"]] = "sift"
 
 
 def run_experiment(cfgs: DictConfig) -> float | None:

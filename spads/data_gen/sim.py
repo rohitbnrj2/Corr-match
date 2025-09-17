@@ -366,6 +366,7 @@ class SimPhoton:
             self.create_histogram_visualization(
                 luminance_images=kwargs['luminance'],
                 photon_counts=kwargs['counts'],
+                photon_images=kwargs['photon'],
                 step=kwargs['step'],
                 save_dir=save_dir
             )
@@ -374,8 +375,8 @@ class SimPhoton:
 
 
     def create_histogram_visualization(self, 
-            luminance_images: List[torch.Tensor], photon_counts: List[torch.Tensor], 
-            step: int, save_dir: str
+            luminance_images: List[torch.Tensor], photon_counts: List[torch.Tensor],
+            photon_images: List[torch.Tensor], step: int, save_dir: str
         ) -> None:
         """
         Create overlapped histograms for luminance and photon images.
@@ -383,6 +384,7 @@ class SimPhoton:
         Args:
             luminance_images: Batch of luminance images
             photon_counts: Batch of photon counts
+            photon_images: Batch of photon images
             step: Current step number
             save_dir: Directory to save the histogram
         """
@@ -452,3 +454,29 @@ class SimPhoton:
         )
         plt.close(fig)
         logger.debug(f"Saved histogram for step {step} in {save_dir}/histograms")
+
+        # Create a histogram of the photon image values (i.e. 0 or 1)
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        binary_data = [
+            img.numpy().flatten() if isinstance(img, torch.Tensor) else img.flatten() 
+            for img in photon_images
+        ]
+
+        all_binary = rearrange(np.stack(binary_data), 'b v -> (b v)')
+        ax.hist(all_binary, bins=[-0.5, 0.5, 1.5], density=True, alpha=0.7, 
+            color='green', label='Photon Binary (0 or 1)', edgecolor='black', linewidth=0.5)
+
+        ax.set_xlim(-0.5, 1.5)
+
+        ax.set_xlabel('Pixel Value')
+        ax.set_ylabel('Probability Mass (PMF)')
+        ax.set_title(f'Photon Binary Histogram - Step {step}')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(
+            osp.join(save_dir, "histograms", f"photon_img_{step:04d}.png"),
+            bbox_inches='tight', dpi=300
+        )
+        plt.close(fig)
+        logger.debug(f"Saved binary histogram for step {step} in {save_dir}/histograms")

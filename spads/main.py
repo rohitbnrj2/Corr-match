@@ -24,7 +24,7 @@ cs.store(name="config", node=Config)
 def main(cfg: DictConfig) -> None:
     """
     Main function
-    """    
+    """ 
 
     # Setup Logger
     logger.remove()
