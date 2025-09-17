@@ -12,5 +12,3 @@ hydra:
     header: "Experimental configuration to test & run SIFT on Lidar image sequences"
     footer: "Parse the configurations as required for your experiment"
   verbose: 1
-
-

@@ -1,19 +1,20 @@
 """
 The entrypoint to find correspondences between frames.
 """
+
 from __future__ import annotations
 
-from loguru import logger
 import hydra
-
-from omegaconf import DictConfig
 from hydra.core.config_store import ConfigStore
+from loguru import logger
+from omegaconf import DictConfig
 
 from .config import Config
 from .experiment import run_experiment
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)
+
 
 @hydra.main(
     version_base=None,
@@ -24,7 +25,7 @@ cs.store(name="config", node=Config)
 def main(cfg: DictConfig) -> None:
     """
     Main function
-    """ 
+    """
 
     # Setup Logger
     logger.remove()
@@ -51,8 +52,8 @@ def main(cfg: DictConfig) -> None:
     logger.info("Logger initialized...")
 
     # Run the experiment
-    score: float | None = run_experiment(cfg)
-    logger.info(f"Experiment completed")
+    run_experiment(cfg)
+    logger.info("Experiment completed")
 
 
 if __name__ == "__main__":

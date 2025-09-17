@@ -1,21 +1,21 @@
 """
-SIFT (Scale-Invariant Feature Transform) implementation for feature matching 
+SIFT (Scale-Invariant Feature Transform) implementation for feature matching
 to find correspondences between images. Using OpenCV.
 """
-from __future__ import annotations
 
-from typing import Annotated, Literal, List, Tuple, Sequence
+from __future__ import annotations
 
 import os
 import os.path as osp
 import random
-import cv2
-
-import numpy as np
-from loguru import logger
 from dataclasses import dataclass
-from omegaconf import DictConfig
+from typing import Annotated, List, Literal, Sequence, Tuple
+
+import cv2
+import numpy as np
 from hydra.core.hydra_config import HydraConfig
+from loguru import logger
+from omegaconf import DictConfig
 from pydantic import BaseModel
 
 # Current Directory
@@ -31,9 +31,9 @@ class SiftConfigs:
     dataset_name: Annotated[str, Literal["fans"]] = "fans"
 
     # SIFT params
-    flann_index_kdtree: int = 0 # Algorithm used for FLANN
-    trees: int = 5              # KD-tree for correspondence matching
-    flann_checks: int = 50      # Checks for FLANN search
+    flann_index_kdtree: int = 0  # Algorithm used for FLANN
+    trees: int = 5  # KD-tree for correspondence matching
+    flann_checks: int = 50  # Checks for FLANN search
 
     # Lowe's ratio for good matches
     lowe_ratio: float = 0.9
@@ -43,8 +43,9 @@ class Keypoints(BaseModel):
     """
     Keypoints for SIFT feature matching.
     """
-    l: Sequence[cv2.KeyPoint]  # Keypoints for left image
-    r: Sequence[cv2.KeyPoint]  # Keypoints for right image
+
+    left: Sequence[cv2.KeyPoint]  # Keypoints for left image
+    right: Sequence[cv2.KeyPoint]  # Keypoints for right image
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -53,8 +54,9 @@ class Descriptors(BaseModel):
     """
     Descriptors for SIFT feature matching.
     """
-    l: np.ndarray  # Descriptors for left image
-    r: np.ndarray  # Descriptors for right image
+
+    left: np.ndarray  # Descriptors for left image
+    right: np.ndarray  # Descriptors for right image
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -77,7 +79,6 @@ class Sift:
     """
 
     def __init__(self, cfgs: DictConfig) -> None:
-
         self._cfg = cfgs
         self.d_name = self._cfg.sift.dataset_name
         self.indices = self.get_indices()
@@ -92,29 +93,27 @@ class Sift:
         self.lowe_ratio = self._cfg.sift.lowe_ratio
         self.flann = cv2.FlannBasedMatcher(
             indexParams=dict(algorithm=FLANN_INDEX_KDTREE, trees=TREES),
-            searchParams=dict(checks=CHECKS)
+            searchParams=dict(checks=CHECKS),
         )
 
-
-    def __call__(self, ) -> None:
+    def __call__(
+        self,
+    ) -> None:
         """
         Run SIFT to get correspondence between pairs of images.
         """
 
         # Run the loop
         for _, f_name in enumerate(self.indices):
-
             # Load current file & random file
-            logger.debug(f'Left Image Index: {f_name}')
-            img1 = cv2.imread(
-                osp.join(curr_dir, '../dataset', self.d_name, f_name)
-            )
+            logger.debug(f"Left Image Index: {f_name}")
+            img1 = cv2.imread(osp.join(curr_dir, "../dataset", self.d_name, f_name))
             gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)  # type: ignore
 
-            idx = random.randint(0, len(self.indices)-1)
-            logger.debug(f'Right Image Index: {self.indices[idx]}')
+            idx = random.randint(0, len(self.indices) - 1)
+            logger.debug(f"Right Image Index: {self.indices[idx]}")
             img2 = cv2.imread(
-                osp.join(curr_dir, '../dataset', self.d_name, self.indices[idx])
+                osp.join(curr_dir, "../dataset", self.d_name, self.indices[idx])
             )
             gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)  # type: ignore
 
@@ -123,7 +122,9 @@ class Sift:
 
             # Find matches between the two images
             matches: Sequence[Sequence[cv2.DMatch]] = self.flann.knnMatch(
-                des.l, des.r, k=2   # type: ignore
+                des.left,
+                des.right,
+                k=2,  # type: ignore
             )
 
             # Get Good Matches
@@ -132,14 +133,20 @@ class Sift:
             # Draw Matches and log the result
             if img1 is not None and img2 is not None:
                 self.draw_matches(
-                    imgs=(img1, img2), kps=kps, matches=matches, matches_mask=matches_mask
+                    imgs=(img1, img2),
+                    kps=kps,
+                    matches=matches,
+                    matches_mask=matches_mask,
                 )
-            
+
             else:
-                raise ValueError("One or both images could not be loaded as they are None.")
+                raise ValueError(
+                    "One or both images could not be loaded as they are None."
+                )
 
-
-    def get_indices(self,) -> List[str]:
+    def get_indices(
+        self,
+    ) -> List[str]:
         """
         Get all the dataset indices for loading the dataset
 
@@ -160,14 +167,15 @@ class Sift:
 
         # Get the indices
         indices = [name.strip() for name in os.listdir(d_path)]
-        
+
         # Shuffle the indices to remove bias
         random.shuffle(indices)
 
         return indices
 
-
-    def sift_descriptors(self, img1: np.ndarray, img2:np.ndarray) -> Tuple[Keypoints, Descriptors]: 
+    def sift_descriptors(
+        self, img1: np.ndarray, img2: np.ndarray
+    ) -> Tuple[Keypoints, Descriptors]:
         """
         Get the SIFT descriptors for a pair of images.
 
@@ -180,24 +188,21 @@ class Sift:
         """
 
         # Create SIFT object
-        sift = cv2.SIFT_create()    # type: ignore
+        sift = cv2.SIFT_create()  # type: ignore
 
         # Get keypoints & descriptors for the images
         kp1, des1 = sift.detectAndCompute(img1, None)
         kp2, des2 = sift.detectAndCompute(img2, None)
 
         # Log the images to hydra
-        log_images(
-            img1=(img1, kp1), img2=(img2, kp2)
-        )
+        log_images(img1=(img1, kp1), img2=(img2, kp2))
 
         # Return the keypoints and descriptors
-        return (
-            Keypoints(l=kp1, r=kp2), Descriptors(l=des1, r=des2)
-        )
+        return (Keypoints(left=kp1, right=kp2), Descriptors(left=des1, right=des2))
 
-
-    def filter_matches(self, matches: Sequence[Sequence[cv2.DMatch]]) -> List[List[int]]:
+    def filter_matches(
+        self, matches: Sequence[Sequence[cv2.DMatch]]
+    ) -> List[List[int]]:
         """
         Filter matches using Lowe's ratio test.
 
@@ -209,23 +214,23 @@ class Sift:
         """
 
         # Apply a ratio to select only good matches
-        matches_mask = [[0,0] for i in range(len(matches))]
+        matches_mask = [[0, 0] for i in range(len(matches))]
 
         # Ratio test as per Lowe's
-        for j, (m,n) in enumerate(matches):
+        for j, (m, n) in enumerate(matches):
             if m.distance < self.lowe_ratio * n.distance:
-                matches_mask[j] = [1,0]
+                matches_mask[j] = [1, 0]
 
         # Log the number of matches
-        logger.info(
-            f"Number of matches found: {sum(m[0] for m in matches_mask)}"
-        )
+        logger.info(f"Number of matches found: {sum(m[0] for m in matches_mask)}")
         return matches_mask
 
-
-    def draw_matches(self, 
-        imgs: Tuple[np.ndarray, np.ndarray], kps: Keypoints, 
-        matches: Sequence[Sequence[cv2.DMatch]], matches_mask: List[List[int]]
+    def draw_matches(
+        self,
+        imgs: Tuple[np.ndarray, np.ndarray],
+        kps: Keypoints,
+        matches: Sequence[Sequence[cv2.DMatch]],
+        matches_mask: List[List[int]],
     ) -> None:
         """
         Draw matches between two images and log the result.
@@ -245,29 +250,34 @@ class Sift:
             matchColor=(0, 255, 0),
             singlePointColor=(255, 0, 0),
             matchesMask=matches_mask,
-            flags=0
+            flags=0,
         )
 
         # Draw matches
         log_img = cv2.drawMatchesKnn(
-            img1=imgs[0], keypoints1=kps.l, 
-            img2=imgs[1], keypoints2=kps.r, 
-            matches1to2=matches, 
+            img1=imgs[0],
+            keypoints1=kps.left,
+            img2=imgs[1],
+            keypoints2=kps.right,
+            matches1to2=matches,
             outImg=None,  # type: ignore
-            **draw_params # type: ignore
-        )   # type: ignore
+            **draw_params,  # type: ignore
+        )  # type: ignore
 
         # Log the image
         log_images(sift_matches=log_img)
 
+
 COUNTER = 0
+
+
 def log_images(**kwargs) -> None:
     """
     Log images to the Hydra output directory.
-    
+
     This function saves images with SIFT features and matches to the current
     Hydra output directory, following Hydra best practices.
-    
+
     Args:
         **kwargs: Keyword arguments containing images to log.
                  Expected format: sift_matches=image_array or similar
@@ -281,7 +291,6 @@ def log_images(**kwargs) -> None:
     os.makedirs(images_dir, exist_ok=True)
 
     for key, value in kwargs.items():
-
         if isinstance(value, np.ndarray):
             # Direct numpy array (image)
             global COUNTER
@@ -304,7 +313,7 @@ def log_images(**kwargs) -> None:
             # Draw the keypoints on the image
             img_with_kp = cv2.drawKeypoints(
                 img, kp, img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
-            )   # type: ignore
+            )  # type: ignore
 
             filepath = osp.join(images_dir, f"{COUNTER:03d}_{key}.png")
             try:
@@ -317,6 +326,4 @@ def log_images(**kwargs) -> None:
             COUNTER += 1
 
         else:
-            logger.warning(
-                f"Unsupported image format for key '{key}': {type(value)}"
-            )
+            logger.warning(f"Unsupported image format for key '{key}': {type(value)}")

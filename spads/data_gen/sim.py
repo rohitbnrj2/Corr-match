@@ -1,46 +1,46 @@
 """
 Generate Photon Binary Frames from RGB images, at 256x256 resolution
 """
+
 from __future__ import annotations
-from typing import Dict, Sequence, List, Tuple, Any
 
 import os
 import os.path as osp
-from loguru import logger
-from tqdm import tqdm
-import numpy as np
 from dataclasses import dataclass, field
-from omegaconf import DictConfig
+from typing import Any, Dict, List, Sequence, Tuple
+
+import numpy as np
 from hydra.core.hydra_config import HydraConfig
+from loguru import logger
+from omegaconf import DictConfig
+from tqdm import tqdm
 
 try:
     from einops import rearrange
-    import imageio.v2 as io
 
 except ImportError as e:
-    logger.error("Install einops imageio to run the simulator")
+    logger.error("Install einops to run the simulator")
     raise e
 
 try:
     import torch
     import torchvision
-    from torchvision import transforms
     from torch.utils.data import DataLoader, Dataset
+    from torchvision import transforms
 
 except ImportError as e:
-    logger.error(
-        "Install PyTorch and Torchvision to run the simulator"
-    )
+    logger.error("Install PyTorch and Torchvision to run the simulator")
     raise e
 
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('Agg')
 
-plt.rcParams['figure.figsize'] = (15, 10)
-plt.rcParams['font.size'] = 12
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['image.cmap'] = 'gray'
+matplotlib.use("Agg")
+
+plt.rcParams["figure.figsize"] = (15, 10)
+plt.rcParams["font.size"] = 12
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["image.cmap"] = "gray"
 
 
 @dataclass
@@ -62,8 +62,8 @@ class SimConfigs:
     drop_last: bool = True
 
     # Photon simulation parameters
-    lambda_target: float = 1e-1  # Lambda(Mean) per exposure 
-    pde: float = 0.6            # Photon Detection Efficiency
+    lambda_target: float = 1e-1  # Lambda(Mean) per exposure
+    pde: float = 0.6  # Photon Detection Efficiency
     dark_count: float = 2e2
     exposure_time: float = 1e-8
 
@@ -93,7 +93,6 @@ class SimDataset(Dataset):
             f"Split {self.cfg.split} | Dataset loaded with {len(self.dataset)} items"
         )
 
-
     def load_dataset(self) -> Sequence:
         """
         Load the dataset specified in the configuration.
@@ -103,23 +102,23 @@ class SimDataset(Dataset):
         """
 
         # Define the transform to resize and convert images to tensors
-        transform = transforms.Compose([
-            transforms.CenterCrop(self.cfg.spatial_res),
-            transforms.ToTensor(),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.CenterCrop(self.cfg.spatial_res),
+                transforms.ToTensor(),
+            ]
+        )
 
         # Load the dataset
         try:
             dset_obj = getattr(torchvision.datasets, self.cfg.dataset)
             dataset = dset_obj(
-                root=f'./data/{self.cfg.dataset.lower()}',
+                root=f"./data/{self.cfg.dataset.lower()}",
                 split=self.cfg.split,
                 transform=transform,
-                download=True
+                download=True,
             )
-            logger.debug(
-                f'Loaded {dset_obj} dataset with {len(dataset)} images.'
-            )
+            logger.debug(f"Loaded {dset_obj} dataset with {len(dataset)} images.")
 
         except (AttributeError, RuntimeError) as e:
             logger.error(
@@ -129,10 +128,8 @@ class SimDataset(Dataset):
 
         return dataset
 
-
     def __len__(self) -> int:
         return len(self.dataset)
-
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         """
@@ -148,7 +145,7 @@ class SimDataset(Dataset):
 
         # Get the item from the dataset
         item = self.dataset[idx][0].numpy().astype(np.float64)
-        item = rearrange(item, 'c h w -> h w c') * 255.0
+        item = rearrange(item, "c h w -> h w c") * 255.0
 
         # Convert to Luminance image
         lum: np.ndarray = self.get_luminance(item)
@@ -157,19 +154,18 @@ class SimDataset(Dataset):
         # Convert to Photon binary frame
         photon_img, photon_counts = self.convert_to_photon(quant_lum)
 
-        elem['image'] = item / 255.0
-        elem['luminance'] = lum
-        elem['quantized'] = quant_lum
-        elem['photon'] = photon_img
-        elem['counts'] = photon_counts
-        elem['index'] = idx
+        elem["image"] = item / 255.0
+        elem["luminance"] = lum
+        elem["quantized"] = quant_lum
+        elem["photon"] = photon_img
+        elem["counts"] = photon_counts
+        elem["index"] = idx
         return elem
-
 
     def get_luminance(self, img: np.ndarray) -> np.ndarray:
         """
         Convert an sRGB image to luminance.
-        
+
         Args:
             img (np.ndarray): Input sRGB image. [0, 1] range.
 
@@ -183,16 +179,13 @@ class SimDataset(Dataset):
 
         # Convert sRGB to RGB
         mask = img <= 0.04045
-        img = np.where(
-            mask, img / 12.92, ((img + 0.055) / 1.055) ** 2.4
-        )
+        img = np.where(mask, img / 12.92, ((img + 0.055) / 1.055) ** 2.4)
 
         # Convert linear RGB to luminance
         lum = 0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]
         lum = np.clip(lum, 0, 1).astype(np.float64)
 
         return lum
-
 
     def convert_to_8bit(self, img: np.ndarray) -> np.ndarray:
         """
@@ -213,7 +206,6 @@ class SimDataset(Dataset):
 
         return quant_img
 
-
     def convert_to_photon(self, img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Convert 8-bit image to photon binary frame.
@@ -226,11 +218,9 @@ class SimDataset(Dataset):
 
         if img.dtype != np.uint8:
             raise ValueError("Input image must be of type uint8")
-        
+
         if img.max() > 255:
-            raise ValueError(
-                "Input image pixel values must be in the range [0, 255]"
-            )
+            raise ValueError("Input image pixel values must be in the range [0, 255]")
 
         # Normalize the image to [0, 1]
         img = img.astype(np.float64) / 255.0
@@ -254,33 +244,30 @@ class SimDataset(Dataset):
         return (photon_img, photon_counts)
 
 
-
 class SimPhoton:
     """
     Generation of photon binary frames from RGB images.
     """
 
     def __init__(self, cfgs: DictConfig) -> None:
-
         self._cfg = cfgs.sim
 
         # Load the dataset
         self.dataset = SimDataset(self._cfg)
         self.dataloader = DataLoader(
-            self.dataset, 
+            self.dataset,
             batch_size=self._cfg.batch_size,
             num_workers=self._cfg.num_workers,
             shuffle=self._cfg.shuffle,
             drop_last=self._cfg.drop_last,
             pin_memory=self._cfg.pin_memory,
-            persistent_workers=True if self._cfg.num_workers > 0 else False
+            persistent_workers=True if self._cfg.num_workers > 0 else False,
         )
-        logger.debug(
-            f"DataLoader initialized with {len(self.dataloader)} batches."
-        )
+        logger.debug(f"DataLoader initialized with {len(self.dataloader)} batches.")
 
-
-    def __call__(self,) -> None:
+    def __call__(
+        self,
+    ) -> None:
         """
         Simulate generation of photon binary frames from RGB images and log outputs.
         """
@@ -290,19 +277,20 @@ class SimPhoton:
         )
 
         for step, batch in enumerate(pbar):
-
-            if batch['image'] is None:
+            if batch["image"] is None:
                 logger.warning(f"Batch {step} contains no images, skipping...")
                 continue
 
             self.log_outputs(
-                step=step, counts=batch['counts'], rgb=batch['image'], 
-                luminance=batch['luminance'], quantized=batch['quantized'], 
-                photon=batch['photon']
+                step=step,
+                counts=batch["counts"],
+                rgb=batch["image"],
+                luminance=batch["luminance"],
+                quantized=batch["quantized"],
+                photon=batch["photon"],
             )
 
         pbar.close()
-
 
     def log_outputs(self, **kwargs) -> None:
         """
@@ -312,9 +300,7 @@ class SimPhoton:
             **kwargs: Keyword arguments containing step, rgb images, and photon images.
         """
 
-        logger.info(
-            f"Step {kwargs['step']}: Processed {len(kwargs['photon'])} images."
-        )
+        logger.info(f"Step {kwargs['step']}: Processed {len(kwargs['photon'])} images.")
 
         # Save directory for logging images
         save_dir = HydraConfig.get().runtime.output_dir
@@ -331,8 +317,7 @@ class SimPhoton:
 
         # Plot each image
         for i, (name, img) in enumerate(kwargs.items()):
-
-            if name == 'step' or name == 'counts':
+            if name == "step" or name == "counts":
                 continue
 
             # Subselect images to plot
@@ -344,43 +329,48 @@ class SimPhoton:
 
             # Plot each image in the batch
             for j, im in enumerate(imgs):
-
                 if im.ndim == 2:
-                    axs[j][i-2].imshow(im, cmap='gray')
+                    axs[j][i - 2].imshow(im, cmap="gray")
                 else:
-                    axs[j][i-2].imshow(im)
+                    axs[j][i - 2].imshow(im)
 
-                axs[j][i-2].axis('off')
-                axs[j][i-2].set_title(f"{name.capitalize()}", fontsize=10)
+                axs[j][i - 2].axis("off")
+                axs[j][i - 2].set_title(f"{name.capitalize()}", fontsize=10)
 
         # Save the figure with the combined images
         plt.tight_layout()
         plt.savefig(
             osp.join(save_dir, "photon_frames", f"step_{kwargs['step']:04d}.png"),
-            bbox_inches='tight', dpi=300
+            bbox_inches="tight",
+            dpi=300,
         )
         plt.close(fig)
 
         # Create overlapped histogram for luminance and photon images
-        if 'luminance' in kwargs and 'photon' in kwargs:
+        if "luminance" in kwargs and "photon" in kwargs:
             self.create_histogram_visualization(
-                luminance_images=kwargs['luminance'],
-                photon_counts=kwargs['counts'],
-                photon_images=kwargs['photon'],
-                step=kwargs['step'],
-                save_dir=save_dir
+                luminance_images=kwargs["luminance"],
+                photon_counts=kwargs["counts"],
+                photon_images=kwargs["photon"],
+                step=kwargs["step"],
+                save_dir=save_dir,
             )
- 
-        logger.debug(f"Saved images for step {kwargs['step']} in {save_dir}/photon_frames")
 
+        logger.debug(
+            f"Saved images for step {kwargs['step']} in {save_dir}/photon_frames"
+        )
 
-    def create_histogram_visualization(self, 
-            luminance_images: List[torch.Tensor], photon_counts: List[torch.Tensor],
-            photon_images: List[torch.Tensor], step: int, save_dir: str
-        ) -> None:
+    def create_histogram_visualization(
+        self,
+        luminance_images: List[torch.Tensor],
+        photon_counts: List[torch.Tensor],
+        photon_images: List[torch.Tensor],
+        step: int,
+        save_dir: str,
+    ) -> None:
         """
         Create overlapped histograms for luminance and photon images.
-        
+
         Args:
             luminance_images: Batch of luminance images
             photon_counts: Batch of photon counts
@@ -388,40 +378,50 @@ class SimPhoton:
             step: Current step number
             save_dir: Directory to save the histogram
         """
-        
+
         # Create figure for histogram
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8))
-        
+
         # Convert tensors to numpy if needed
         if isinstance(luminance_images[0], torch.Tensor):
-
-            norm_lum = [img / 255.0 if img.max() > 1.0 else img for img in luminance_images]
+            norm_lum = [
+                img / 255.0 if img.max() > 1.0 else img for img in luminance_images
+            ]
             lum_data = [img.numpy().flatten() for img in norm_lum]
 
             photon_data = [img.numpy().flatten() for img in photon_counts]
 
         else:
-
-            norm_lum = [img / 255.0 if img.max() > 1.0 else img for img in luminance_images]
+            norm_lum = [
+                img / 255.0 if img.max() > 1.0 else img for img in luminance_images
+            ]
             lum_data = [img.flatten() for img in norm_lum]
 
             photon_data = [img.flatten() for img in photon_counts]
 
-
         # Concatenate all image data for the batch
-        all_luminance = rearrange(np.stack(lum_data), 'b v -> (b v)')
-        all_photon = rearrange(np.stack(photon_data), 'b v -> (b v)')
+        all_luminance = rearrange(np.stack(lum_data), "b v -> (b v)")
+        all_photon = rearrange(np.stack(photon_data), "b v -> (b v)")
 
         # Plot overlapped histograms
-        ax1.hist(all_luminance, bins=50, alpha=0.7, color='blue', 
-            label='Luminance (μ={:.3f}, σ={:.3f})'.format(all_luminance.mean(), all_luminance.std()), 
-            density=True, edgecolor='black', linewidth=0.5)
+        ax1.hist(
+            all_luminance,
+            bins=50,
+            alpha=0.7,
+            color="blue",
+            label="Luminance (μ={:.3f}, σ={:.3f})".format(
+                all_luminance.mean(), all_luminance.std()
+            ),
+            density=True,
+            edgecolor="black",
+            linewidth=0.5,
+        )
 
         ax1.set_xlim(0, 1)
         ax1.set_xticks(np.arange(0, 1.1, 0.2))
-        ax1.set_xlabel('Pixel Intensity')
-        ax1.set_ylabel('Probability Density (PDF)')
-        ax1.set_title(f'Histograms - Step {step}')
+        ax1.set_xlabel("Pixel Intensity")
+        ax1.set_ylabel("Probability Density (PDF)")
+        ax1.set_title(f"Histograms - Step {step}")
         ax1.legend()
         ax1.grid(True, alpha=0.3)
 
@@ -433,24 +433,33 @@ class SimPhoton:
         widths = np.diff(bin_edges)
 
         # plot bars (heights are true densities)
-        ax2.bar(bin_centers, counts, width=widths, align='center',
-                color='salmon', alpha=0.85, edgecolor='black', linewidth=0.4,
-                label=f'Photon Counts (μ={all_photon.mean():.3f}, σ={all_photon.std():.3f})')
+        ax2.bar(
+            bin_centers,
+            counts,
+            width=widths,
+            align="center",
+            color="salmon",
+            alpha=0.85,
+            edgecolor="black",
+            linewidth=0.4,
+            label=f"Photon Counts (μ={all_photon.mean():.3f}, σ={all_photon.std():.3f})",
+        )
 
         ax2.set_xlim(bin_edges[0], bin_edges[-1])
-        ax2.set_xlabel('Photon Counts')
-        ax2.set_ylabel('Probability Density (PMF)')
-        ax2.set_title(f'Photon Counts Histogram - Step {step:02d}')
-        ax2.legend(loc='upper right')
+        ax2.set_xlabel("Photon Counts")
+        ax2.set_ylabel("Probability Density (PMF)")
+        ax2.set_title(f"Photon Counts Histogram - Step {step:02d}")
+        ax2.legend(loc="upper right")
         ax2.grid(alpha=0.25)
 
         # --- switch to log scale on y-axis so small densities are visible ---
-        ax2.set_yscale('log')
+        ax2.set_yscale("log")
 
         plt.tight_layout()
         plt.savefig(
             osp.join(save_dir, "histograms", f"histogram_step_{step:04d}.png"),
-            bbox_inches='tight', dpi=300
+            bbox_inches="tight",
+            dpi=300,
         )
         plt.close(fig)
         logger.debug(f"Saved histogram for step {step} in {save_dir}/histograms")
@@ -458,25 +467,34 @@ class SimPhoton:
         # Create a histogram of the photon image values (i.e. 0 or 1)
         fig, ax = plt.subplots(1, 1, figsize=(5, 5))
         binary_data = [
-            img.numpy().flatten() if isinstance(img, torch.Tensor) else img.flatten() 
+            img.numpy().flatten() if isinstance(img, torch.Tensor) else img.flatten()
             for img in photon_images
         ]
 
-        all_binary = rearrange(np.stack(binary_data), 'b v -> (b v)')
-        ax.hist(all_binary, bins=[-0.5, 0.5, 1.5], density=True, alpha=0.7, 
-            color='green', label='Photon Binary (0 or 1)', edgecolor='black', linewidth=0.5)
+        all_binary = rearrange(np.stack(binary_data), "b v -> (b v)")
+        ax.hist(
+            all_binary,
+            bins=[-0.5, 0.5, 1.5],
+            density=True,
+            alpha=0.7,
+            color="green",
+            label="Photon Binary (0 or 1)",
+            edgecolor="black",
+            linewidth=0.5,
+        )
 
         ax.set_xlim(-0.5, 1.5)
 
-        ax.set_xlabel('Pixel Value')
-        ax.set_ylabel('Probability Mass (PMF)')
-        ax.set_title(f'Photon Binary Histogram - Step {step}')
+        ax.set_xlabel("Pixel Value")
+        ax.set_ylabel("Probability Mass (PMF)")
+        ax.set_title(f"Photon Binary Histogram - Step {step}")
         ax.legend()
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(
             osp.join(save_dir, "histograms", f"photon_img_{step:04d}.png"),
-            bbox_inches='tight', dpi=300
+            bbox_inches="tight",
+            dpi=300,
         )
         plt.close(fig)
         logger.debug(f"Saved binary histogram for step {step} in {save_dir}/histograms")

@@ -1,4 +1,4 @@
-# SPAD Investigations 
+# SPAD Investigations
 
 A Python package for finding SPAD research gaps, essentially optimized for investigations.
 

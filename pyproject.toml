@@ -60,9 +60,6 @@ main = "spads.main:main"
 
 [tool.ruff]
 
-# Respect git-ignore - Do not reformat them
-respect-gitignore =
-
 # Exclude a variety of commonly ignored directories
 exclude = [
     ".vscode",
@@ -72,7 +69,7 @@ exclude = [
     ".ruff_cache",
     ".ipynb_checkpoints",
     ".tox",
-    "venv"
+    "venv",
 ]
 
 # Same as Black
